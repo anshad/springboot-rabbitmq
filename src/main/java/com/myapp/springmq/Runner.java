@@ -1,27 +1,18 @@
 package com.myapp.springmq;
 
-import java.util.concurrent.TimeUnit;
-
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-@Component
-public class Runner implements CommandLineRunner {
+@Service
+public class Runner {
 
-    private final RabbitTemplate rabbitTemplate;
-    private final Receiver receiver;
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
-    public Runner(Receiver receiver, RabbitTemplate rabbitTemplate) {
-        this.receiver = receiver;
-        this.rabbitTemplate = rabbitTemplate;
-    }
-
-    @Override
-    public void run(String... args) throws Exception {
+    public void run(String exchange) {
         System.out.println("Sending message...");
-        rabbitTemplate.convertAndSend(SpringmqApplication.topicExchangeName, "foo.bar.baz", "Hello from RabbitMQ!");
-        receiver.getLatch().await(10000, TimeUnit.MILLISECONDS);
+        rabbitTemplate.convertAndSend(exchange, "foo.bar.baz", "Hello from RabbitMQ!");
     }
 
 }

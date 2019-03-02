@@ -2,10 +2,13 @@ package com.myapp.springmq;
 
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;
@@ -19,6 +22,8 @@ public class SpringmqApplication {
     static final String topicExchangeName = "spring-boot-exchange";
 
     static final String queueName = "spring-boot";
+
+
 
     @Bean
     Queue queue() {
@@ -51,7 +56,9 @@ public class SpringmqApplication {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(SpringmqApplication.class, args);
+        ApplicationContext applicationContext =  SpringApplication.run(SpringmqApplication.class, args);
+        Runner runner = applicationContext.getBean(Runner.class);
+        runner.run(topicExchangeName);
     }
 
 }
