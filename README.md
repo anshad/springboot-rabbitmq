@@ -32,24 +32,15 @@ With any messaging-based application, you need to create a receiver that will re
 ``src/main/java/com.myapp.springmq/Receiver.java``
 
     package com.myapp.springmq;
-
-    import java.util.concurrent.CountDownLatch;
+    
     import org.springframework.stereotype.Component;
-
+    
     @Component
     public class Receiver {
-
-        private CountDownLatch latch = new CountDownLatch(1);
-
+    
         public void receiveMessage(String message) {
             System.out.println("Received <" + message + ">");
-            latch.countDown();
         }
-
-        public CountDownLatch getLatch() {
-            return latch;
-        }
-
     }
 
 
@@ -63,49 +54,51 @@ Spring AMQP’s ``RabbitTemplate`` provides everything you need to send and rece
 
 - A message listener container
 - Declare the queue, the exchange, and the binding between them
-- A component to send some messages to test the listener
+- A component to send some messages to test the listener (running on springboot run)
 
 > *Spring Boot automatically creates a connection factory and a RabbitTemplate, reducing the amount of code you have to write.*
 
 You’ll use RabbitTemplate to send messages, and you will register a Receiver with the message listener container to receive messages. The connection factory drives both, allowing them to connect to the RabbitMQ server.
 
-``src/main/java/com.myapp.springmq/Application.java``
+``src/main/java/com.myapp.springmq/SpringmqApplication.java``
 
     package com.myapp.springmq;
-
+    
     import org.springframework.amqp.core.BindingBuilder;
     import org.springframework.amqp.core.TopicExchange;
     import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
     import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
     import org.springframework.boot.SpringApplication;
     import org.springframework.boot.autoconfigure.SpringBootApplication;
+    import org.springframework.context.ApplicationContext;
     import org.springframework.context.annotation.Bean;
     import org.springframework.amqp.core.Binding;
     import org.springframework.amqp.core.Queue;
     import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-
+    
+    
     @SpringBootApplication
     public class SpringmqApplication {
-
+    
         static final String topicExchangeName = "spring-boot-exchange";
-
+    
         static final String queueName = "spring-boot";
-
+        
         @Bean
         Queue queue() {
             return new Queue(queueName, false);
         }
-
+    
         @Bean
         TopicExchange exchange() {
             return new TopicExchange(topicExchangeName);
         }
-
+    
         @Bean
         Binding binding(Queue queue, TopicExchange exchange) {
             return BindingBuilder.bind(queue).to(exchange).with("foo.bar.#");
         }
-
+    
         @Bean
         SimpleMessageListenerContainer container(ConnectionFactory connectionFactory,
                                                  MessageListenerAdapter listenerAdapter) {
@@ -115,17 +108,19 @@ You’ll use RabbitTemplate to send messages, and you will register a Receiver w
             container.setMessageListener(listenerAdapter);
             return container;
         }
-
+    
         @Bean
         MessageListenerAdapter listenerAdapter(Receiver receiver) {
             return new MessageListenerAdapter(receiver, "receiveMessage");
         }
-
+    
         public static void main(String[] args) {
-            SpringApplication.run(SpringmqApplication.class, args);
+            ApplicationContext applicationContext =  SpringApplication.run(SpringmqApplication.class, args);
+            Runner runner = applicationContext.getBean(Runner.class);
+            runner.run(topicExchangeName);
         }
-
     }
+
     
     
 
@@ -158,32 +153,24 @@ Test messages are sent by a CommandLineRunner, which also waits for the latch in
 ``src/main/java/com.myapp.springmq/Runner.java``
 
     package com.myapp.springmq;
-
-    import java.util.concurrent.TimeUnit;
-
+    
     import org.springframework.amqp.rabbit.core.RabbitTemplate;
-    import org.springframework.boot.CommandLineRunner;
-    import org.springframework.stereotype.Component;
-
-    @Component
-    public class Runner implements CommandLineRunner {
-
-        private final RabbitTemplate rabbitTemplate;
-        private final Receiver receiver;
-
-        public Runner(Receiver receiver, RabbitTemplate rabbitTemplate) {
-            this.receiver = receiver;
-            this.rabbitTemplate = rabbitTemplate;
-        }
-
-        @Override
-        public void run(String... args) throws Exception {
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.stereotype.Service;
+    
+    @Service
+    public class Runner {
+    
+        @Autowired
+        private RabbitTemplate rabbitTemplate;
+    
+        public void run(String exchange) {
             System.out.println("Sending message...");
-            rabbitTemplate.convertAndSend(SpringmqApplication.topicExchangeName, "foo.bar.baz", "Hello from RabbitMQ!");
-            receiver.getLatch().await(10000, TimeUnit.MILLISECONDS);
+            rabbitTemplate.convertAndSend(exchange, "foo.bar.baz", "Hello from RabbitMQ!");
         }
-
+    
     }
+
     
 
 
