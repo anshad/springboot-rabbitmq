@@ -46,8 +46,6 @@ With any messaging-based application, you need to create a receiver that will re
 
 The Receiver is a simple POJO that defines a method for receiving messages. When you register it to receive messages, you can name it anything you want.
 
-> *For convenience, this POJO also has a CountDownLatch. This allows it to signal that the message is received. This is something you are not likely to implement in a production application.*
-
 # Register the listener and send a message
 
 Spring AMQP’s ``RabbitTemplate`` provides everything you need to send and receive messages with RabbitMQ. Specifically, you need to configure:
@@ -147,8 +145,6 @@ The ``queue()`` method creates an AMQP queue. The ``exchange()`` method creates 
 In this case, we use a topic exchange and the queue is bound with routing key ``foo.bar.#`` which means any message sent with a routing key beginning with ``foo.bar``. will be routed to the queue.
 
 # Send a Test Message
-
-Test messages are sent by a CommandLineRunner, which also waits for the latch in the receiver and closes the application context:
 
 ``src/main/java/com.myapp.springmq/Runner.java``
 
